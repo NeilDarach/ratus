@@ -219,6 +219,9 @@ type Updated struct {
 
 	// Number of resources updated by the operation.
 	Updated int64 `json:"updated"`
+
+        // A list of the ids of the tasks, possibly server generated
+        Ids []string `json:"ids"`
 }
 
 // Deleted contains result of a delete operation.

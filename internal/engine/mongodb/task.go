@@ -28,10 +28,12 @@ func (g *Engine) ListTasks(ctx context.Context, topic string, limit, offset int)
 // InsertTasks inserts a batch of tasks while ignoring existing ones.
 func (g *Engine) InsertTasks(ctx context.Context, ts []*ratus.Task) (*ratus.Updated, error) {
 	w := make([]mongo.WriteModel, len(ts))
+        ids := make([]string, len(ts))
 	for i, t := range ts {
 		m := mongo.NewInsertOneModel()
 		m = m.SetDocument(t)
 		w[i] = m
+                ids[i] = t.ID
 	}
 
 	// Execute an unordered bulk write to insert tasks and ignore duplicates.
@@ -46,6 +48,7 @@ func (g *Engine) InsertTasks(ctx context.Context, ts []*ratus.Task) (*ratus.Upda
 	return &ratus.Updated{
 		Created: r.InsertedCount + r.UpsertedCount,
 		Updated: r.ModifiedCount,
+                Ids: ids,
 	}, nil
 }
 
@@ -65,6 +68,7 @@ func (g *Engine) upsertTasksReplace(ctx context.Context, ts []*ratus.Task) (*rat
 	// This operation is expected to work only on unsharded collections and
 	// sharded collections using the ID field as the shard key.
 	w := make([]mongo.WriteModel, len(ts))
+        ids := make([]string, len(ts))
 	for i, t := range ts {
 		m := mongo.NewReplaceOneModel()
 		m = m.SetFilter(bson.D{{Key: keyID, Value: t.ID}})
@@ -72,6 +76,7 @@ func (g *Engine) upsertTasksReplace(ctx context.Context, ts []*ratus.Task) (*rat
 		m = m.SetUpsert(true)
 		m = m.SetHint(indexID)
 		w[i] = m
+                ids[i] = t.ID
 	}
 	o := options.BulkWrite().SetOrdered(false)
 	r, err := g.collection.BulkWrite(ctx, w, o)
@@ -82,6 +87,7 @@ func (g *Engine) upsertTasksReplace(ctx context.Context, ts []*ratus.Task) (*rat
 	return &ratus.Updated{
 		Created: r.InsertedCount + r.UpsertedCount,
 		Updated: r.ModifiedCount,
+                Ids: ids,
 	}, nil
 }
 
@@ -93,11 +99,13 @@ func (g *Engine) upsertTasksDeleteAndInsert(ctx context.Context, ts []*ratus.Tas
 	// circumvent MongoDB's own limitations on sharded collections:
 	// https://www.mongodb.com/docs/v4.4/reference/method/db.collection.replaceOne/#shard-key-modification
 	w := make([]mongo.WriteModel, len(ts))
+        ids := make([]string, len(ts))
 	for i, t := range ts {
 		m := mongo.NewDeleteOneModel()
 		m = m.SetFilter(bson.D{{Key: keyID, Value: t.ID}})
 		m = m.SetHint(indexID)
 		w[i] = m
+                ids[i] = t.ID
 	}
 
 	// The number of deleted tasks is the number of tasks that should be updated.
@@ -117,6 +125,7 @@ func (g *Engine) upsertTasksDeleteAndInsert(ctx context.Context, ts []*ratus.Tas
 	return &ratus.Updated{
 		Created: int64(len(ts)) - r.DeletedCount,
 		Updated: r.DeletedCount,
+                Ids: ids,
 	}, nil
 }
 
@@ -155,9 +164,12 @@ func (g *Engine) InsertTask(ctx context.Context, t *ratus.Task) (*ratus.Updated,
 		}
 		return nil, err
 	}
+        ids := make([]string,1)
+        ids[0] = t.ID
 	return &ratus.Updated{
 		Created: 1,
 		Updated: 0,
+                Ids: ids,
 	}, nil
 }
 
@@ -183,9 +195,12 @@ func (g *Engine) upsertTaskReplace(ctx context.Context, t *ratus.Task) (*ratus.U
 		return nil, err
 	}
 
+        ids := make([]string,1)
+        ids[0] = t.ID
 	return &ratus.Updated{
 		Created: r.UpsertedCount,
 		Updated: r.ModifiedCount,
+		Ids: ids,
 	}, nil
 }
 

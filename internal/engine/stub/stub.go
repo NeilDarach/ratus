@@ -112,12 +112,17 @@ func (g *Engine) ListTasks(ctx context.Context, topic string, limit, offset int)
 
 // InsertTasks inserts a batch of tasks while ignoring existing ones.
 func (g *Engine) InsertTasks(ctx context.Context, ts []*ratus.Task) (*ratus.Updated, error) {
-	return &ratus.Updated{Created: 1, Updated: 0}, g.Err
+        ids := make([]string,1)
+        ids[0] = cannedID 
+	return &ratus.Updated{Created: 1, Updated: 0, Ids: ids }, g.Err
 }
 
 // UpsertTasks inserts or updates a batch of tasks.
 func (g *Engine) UpsertTasks(ctx context.Context, ts []*ratus.Task) (*ratus.Updated, error) {
-	return &ratus.Updated{Created: 1, Updated: 1}, g.Err
+        ids := make([]string,2)
+        ids[0] = cannedID 
+        ids[1] = cannedID 
+	return &ratus.Updated{Created: 1, Updated: 1, Ids: ids }, g.Err
 }
 
 // DeleteTasks deletes all tasks in a topic.
@@ -141,12 +146,16 @@ func (g *Engine) GetTask(ctx context.Context, id string) (*ratus.Task, error) {
 
 // InsertTask inserts a new task.
 func (g *Engine) InsertTask(ctx context.Context, t *ratus.Task) (*ratus.Updated, error) {
-	return &ratus.Updated{Created: 1, Updated: 0}, g.Err
+        ids := make([]string,1)
+        ids[0] = cannedID 
+	return &ratus.Updated{Created: 1, Updated: 0, Ids: ids }, g.Err
 }
 
 // UpsertTask inserts or updates a task.
 func (g *Engine) UpsertTask(ctx context.Context, t *ratus.Task) (*ratus.Updated, error) {
-	return &ratus.Updated{Created: 0, Updated: 1}, g.Err
+        ids := make([]string,1)
+        ids[0] = cannedID 
+	return &ratus.Updated{Created: 0, Updated: 1, Ids: ids }, g.Err
 }
 
 // DeleteTask deletes a task by its unique ID.

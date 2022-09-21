@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/hyperonym/ratus"
+        "github.com/google/uuid"
 )
 
 // ListTasks lists all tasks in a topic.
@@ -35,7 +36,12 @@ func (g *Engine) InsertTasks(ctx context.Context, ts []*ratus.Task) (*ratus.Upda
 
 	// Skip the task if a task with the same ID already exists.
 	var c int64
-	for _, t := range ts {
+        var ids []string
+        ids = make([]string, len(ts))
+	for i, t := range ts {
+                if t.ID == "0" {
+                  t.ID = uuid.New().String()
+                }
 		r, err := txn.First(tableTask, indexID, t.ID)
 		if err != nil {
 			return nil, err
@@ -46,6 +52,7 @@ func (g *Engine) InsertTasks(ctx context.Context, ts []*ratus.Task) (*ratus.Upda
 		if err := txn.Insert(tableTask, clone(t)); err != nil {
 			return nil, err
 		}
+                ids[i] = t.ID
 		c++
 	}
 
@@ -53,6 +60,7 @@ func (g *Engine) InsertTasks(ctx context.Context, ts []*ratus.Task) (*ratus.Upda
 	return &ratus.Updated{
 		Created: c,
 		Updated: 0,
+                Ids: ids,
 	}, nil
 }
 
@@ -64,7 +72,12 @@ func (g *Engine) UpsertTasks(ctx context.Context, ts []*ratus.Task) (*ratus.Upda
 	// Check if a task with the same ID already exists before updating to count
 	// the number of creations and modifications separately.
 	var c int64
-	for _, t := range ts {
+        var ids []string
+        ids = make([]string, len(ts))
+	for i, t := range ts {
+                if t.ID == "0" {
+                  t.ID = uuid.New().String()
+                }
 		r, err := txn.First(tableTask, indexID, t.ID)
 		if err != nil {
 			return nil, err
@@ -72,6 +85,7 @@ func (g *Engine) UpsertTasks(ctx context.Context, ts []*ratus.Task) (*ratus.Upda
 		if err := txn.Insert(tableTask, clone(t)); err != nil {
 			return nil, err
 		}
+                ids[i] = t.ID
 		if r == nil {
 			c++
 		}
@@ -81,6 +95,7 @@ func (g *Engine) UpsertTasks(ctx context.Context, ts []*ratus.Task) (*ratus.Upda
 	return &ratus.Updated{
 		Created: c,
 		Updated: int64(len(ts)) - c,
+                Ids: ids,
 	}, nil
 }
 
@@ -123,6 +138,9 @@ func (g *Engine) InsertTask(ctx context.Context, t *ratus.Task) (*ratus.Updated,
 	defer txn.Abort()
 
 	// Check if a task with the same ID already exists.
+        if t.ID == "0" {
+           t.ID = uuid.New().String()
+        }
 	r, err := txn.First(tableTask, indexID, t.ID)
 	if err != nil {
 		return nil, err
@@ -135,9 +153,12 @@ func (g *Engine) InsertTask(ctx context.Context, t *ratus.Task) (*ratus.Updated,
 	}
 
 	txn.Commit()
+        ids := make([]string, 1)
+        ids[0] = t.ID
 	return &ratus.Updated{
 		Created: 1,
 		Updated: 0,
+                Ids: ids,
 	}, nil
 }
 
@@ -148,7 +169,10 @@ func (g *Engine) UpsertTask(ctx context.Context, t *ratus.Task) (*ratus.Updated,
 
 	// Check if a task with the same ID already exists before updating to count
 	// the number of creations and modifications separately.
-	var u int64
+	var u int64  
+        if t.ID == "0" {
+           t.ID = uuid.New().String()
+        }
 	r, err := txn.First(tableTask, indexID, t.ID)
 	if err != nil {
 		return nil, err
@@ -161,9 +185,12 @@ func (g *Engine) UpsertTask(ctx context.Context, t *ratus.Task) (*ratus.Updated,
 	}
 
 	txn.Commit()
+        ids := make([]string,1)
+        ids[0] = t.ID
 	return &ratus.Updated{
 		Created: 1 - u,
 		Updated: u,
+                Ids:ids,
 	}, nil
 }
 
