@@ -3,6 +3,8 @@ package ratus
 
 import (
 	"context"
+	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
@@ -48,6 +49,13 @@ var (
 	// ErrServiceUnavailable is returned when the service is unavailable.
 	ErrServiceUnavailable = errors.New("service unavailable")
 )
+
+// init registers interface types for binary encoding and decoding.
+func init() {
+	gob.Register([]interface{}{})
+	gob.Register(map[string]interface{}{})
+	gob.Register([]map[string]interface{}{})
+}
 
 // TaskState indicates the state of a task.
 type TaskState int32
@@ -143,10 +151,19 @@ type Task struct {
 	Defer string `json:"defer,omitempty" bson:"-"`
 }
 
-// Decode parses the payload of the task using reflection and stores the result
-// to the value pointed by the specified pointer.
+// Decode parses the payload of the task and stores the result in the value
+// pointed by the specified pointer.
 func (t *Task) Decode(v any) error {
-	return mapstructure.Decode(t.Payload, v)
+
+	// Counterintuitively, the seemingly dumb approach of just marshalling
+	// input into JSON bytes and decoding it from those bytes is actually both
+	// 29.5% faster (than reflection) and causes less memory allocations.
+	// Reference: https://github.com/mitchellh/mapstructure/issues/37
+	b, err := json.Marshal(t.Payload)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, v)
 }
 
 // Ratus uses the BSON format to encode and decode data as it supports more
@@ -167,16 +184,6 @@ func (t *Task) UnmarshalBSON(data []byte) error {
 	}
 	*t = Task(a)
 	return nil
-}
-
-// MarshalBinary implements the encoding.BinaryMarshaler interface.
-func (t *Task) MarshalBinary() ([]byte, error) {
-	return bson.Marshal(t)
-}
-
-// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
-func (t *Task) UnmarshalBinary(data []byte) error {
-	return bson.Unmarshal(data, t)
 }
 
 // Promise represents a claim on the ownership of an active task.
