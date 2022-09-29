@@ -24,6 +24,9 @@ import (
 // in the package of the specific engine.
 func Test(t *testing.T, g Engine) {
 	ctx := context.Background()
+	if err := g.Ready(ctx); !errors.Is(err, ratus.ErrServiceUnavailable) {
+		t.Errorf("incorrect error type, expected %q, got %q", ratus.ErrServiceUnavailable, err)
+	}
 	if err := g.Open(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -773,8 +776,8 @@ func Test(t *testing.T, g Engine) {
 	// Test operations related to task scheduling.
 	t.Run("schedule", func(t *testing.T) {
 		n := time.Now()
-		n1 := n.Add(1 * time.Second)
-		n2 := n.Add(2 * time.Second)
+		n1 := n.Add(100 * time.Millisecond)
+		n2 := n.Add(200 * time.Millisecond)
 		if _, err := g.InsertTasks(ctx, []*ratus.Task{
 			{
 				ID:        "1",
@@ -807,7 +810,7 @@ func Test(t *testing.T, g Engine) {
 			if _, err := g.Poll(ctx, "test", &ratus.Promise{Deadline: &n1}); !errors.Is(err, ratus.ErrNotFound) {
 				t.Errorf("incorrect error type, expected %q, got %q", ratus.ErrNotFound, err)
 			}
-			time.Sleep(1 * time.Second)
+			time.Sleep(100 * time.Millisecond)
 			v, err = g.Poll(ctx, "test", &ratus.Promise{Deadline: &n2})
 			if err != nil {
 				t.Error(err)

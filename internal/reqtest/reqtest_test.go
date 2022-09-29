@@ -10,7 +10,8 @@ import (
 	"github.com/hyperonym/ratus/internal/reqtest"
 )
 
-func TestStub(t *testing.T) {
+func TestRequest(t *testing.T) {
+	gin.SetMode(gin.ReleaseMode)
 	h := reqtest.NewHandler(&reqtest.StubGroup{})
 
 	t.Run("get", func(t *testing.T) {

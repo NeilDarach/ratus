@@ -155,8 +155,7 @@ func TestIndex(t *testing.T) {
 		}
 	})
 
-	// Give the MongoDB server some time to complete background tasks.
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
 	t.Run("create", func(t *testing.T) {
 		ctx := context.Background()
@@ -184,6 +183,8 @@ func TestIndex(t *testing.T) {
 		}
 	})
 
+	time.Sleep(500 * time.Millisecond)
+
 	t.Run("change", func(t *testing.T) {
 		ctx := context.Background()
 		g, err := mongodb.New(&mongodb.Config{
@@ -206,35 +207,6 @@ func TestIndex(t *testing.T) {
 			t.Errorf("incorrect retention duration, expected 7, got %d", s)
 		}
 		if err := g.Destroy(ctx); err != nil {
-			t.Fatal(err)
-		}
-	})
-}
-
-func TestError(t *testing.T) {
-	t.Run("uri", func(t *testing.T) {
-		if _, err := mongodb.New(&mongodb.Config{URI: "invalid"}); err == nil {
-			t.Fail()
-		}
-	})
-
-	t.Run("context", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
-		g, err := mongodb.New(&mongodb.Config{
-			URI:      "mongodb://invalid",
-			Database: "invalid",
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := g.Open(ctx); err == nil {
-			t.Fatal(err)
-		}
-		if err := g.Ready(ctx); err == nil {
-			t.Fatal(err)
-		}
-		if err := g.Destroy(ctx); err == nil {
 			t.Fatal(err)
 		}
 	})
